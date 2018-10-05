@@ -1,0 +1,138 @@
+version: '3'
+
+
+volumes:
+  mysql_data:
+    driver: local
+    
+services:
+  delivery:
+    image: comd/delivery:latest 
+    #container_name: comd-delivery
+    ports:
+      - "8090:8090"
+    environment:      
+      - SAP_RFC_DESTINATION=AS_ABAP
+      - JCO_ASHOST=10.0.64.13
+      - JCO_SYSNR=01
+      - JCO_CLIENT=220
+      - JCO_USER=amusa
+      - JCO_PASSWD=jfoxuser
+      - JCO_LANG=en
+      - JCO_POOL_CAPACITY=3
+      - JCO_PEAK_LIMIT=10
+    networks:
+      - comdnet      
+    
+  creditnote:
+    image: comd/creditnote:latest     
+    ports:
+      - "8085:8085"
+    links:
+      - mongo_db
+    depends_on:
+      - mongo_db
+    environment:           
+      - SAP_RFC_DESTINATION=AS_ABAP
+      - JCO_ASHOST=10.0.64.13
+      - JCO_SYSNR=01
+      - JCO_CLIENT=220
+      - JCO_USER=amusa
+      - JCO_PASSWD=jfoxuser
+      - JCO_LANG=en
+      - JCO_POOL_CAPACITY=3
+      - JCO_PEAK_LIMIT=10    
+      - mongodb.url=mongodb://mongo_db
+      - mongodb.db=sequence
+    networks:
+      - comdnet
+  
+  customer:
+    image: comd/customers:latest     
+    ports:
+      - "9090:9090"
+    environment:           
+      - SAP_RFC_DESTINATION=AS_ABAP
+      - JCO_ASHOST=10.0.64.13
+      - JCO_SYSNR=01
+      - JCO_CLIENT=220
+      - JCO_USER=amusa
+      - JCO_PASSWD=jfoxuser
+      - JCO_LANG=en
+      - JCO_POOL_CAPACITY=3
+      - JCO_PEAK_LIMIT=10 
+    networks:
+      - comdnet
+  
+  web:
+    image: comd/creditnote-web:latest     
+    ports:
+      - "8180:8180"
+    links:
+      - delivery
+      - customer
+      - creditnote
+    depends_on:
+      - delivery
+      - customer
+      - creditnote
+    environment:           
+      - DELIVERY_SERVICE_URL=http://delivery:8090/comd-delivery-api/v1
+      - CUSTOMER_SERVICE_URL=http://customer:9090/comd-customer-api/v1
+      - CREDITNOTE_SERVICE_URL=http://creditnote:8085/comd-creditnote-api/v1
+    networks:
+      - comdnet
+  
+  mongo_db:
+    image: mongo:latest     
+    #ports:
+    #  - "27017:27017"
+    environment:           
+      - DELIVERY_SERVICE_URL=http://delivery:8090/comd-delivery-api/v1
+      - CUSTOMER_SERVICE_URL=http://customer:9090/comd-customer-api/v1
+      - CREDITNOTE_SERVICE_URL=http://creditnote:8085/comd-creditnote-api/v1
+    networks:
+      - comdnet
+             
+
+  mysql:
+    image: mysql:5.7
+    volumes:
+      - mysql_data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: keycloak
+      MYSQL_USER: keycloak
+      MYSQL_PASSWORD: password
+    networks:
+    - comdnet
+    
+  keycloak:
+    image: jboss/keycloak
+    environment:
+      DB_VENDOR: MYSQL
+      DB_ADDR: mysql
+      DB_DATABASE: keycloak
+      DB_USER: keycloak
+      DB_PASSWORD: password
+      KEYCLOAK_USER: admin
+      KEYCLOAK_PASSWORD: Pa55w0rd
+      # Uncomment the line below if you want to specify JDBC parameters. The parameter below is just an example, and it shouldn't be used in production without knowledge. It is highly recommended that you read the MySQL JDBC driver documentation in order to use it.
+        #JDBC_PARAMS: "connectTimeout=30000"
+    ports:
+      - 8080:8080
+    links:
+      - mysql
+    depends_on:
+      - mysql
+    networks:
+    - comdnet
+              
+      
+networks:
+    comdnet:
+      
+       
+
+    
+

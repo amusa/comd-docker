@@ -1,0 +1,89 @@
+version: '3'
+
+   
+services:
+  delivery:
+    image: comd/delivery:latest 
+    #container_name: comd-delivery
+    ports:
+      - "8090:8090"
+    environment:      
+      - SAP_RFC_DESTINATION=AS_ABAP
+      - JCO_ASHOST=10.0.64.13
+      - JCO_SYSNR=01
+      - JCO_CLIENT=220
+      - JCO_USER=amusa
+      - JCO_PASSWD=jfoxuser
+      - JCO_LANG=en
+      - JCO_POOL_CAPACITY=3
+      - JCO_PEAK_LIMIT=10
+    networks:
+      - comdnet      
+    
+  creditnote:
+    image: comd/creditnote:latest     
+    ports:
+      - "8085:8085"
+    #links:
+    #  - mongo_db
+    #depends_on:
+    #  - mongo_db
+    environment:           
+      - SAP_RFC_DESTINATION=AS_ABAP
+      - JCO_ASHOST=10.0.64.13
+      - JCO_SYSNR=01
+      - JCO_CLIENT=220
+      - JCO_USER=amusa
+      - JCO_PASSWD=jfoxuser
+      - JCO_LANG=en
+      - JCO_POOL_CAPACITY=3
+      - JCO_PEAK_LIMIT=10    
+      - mongodb.url=mongodb://mongo_db
+      - mongodb.db=sequence
+    networks:
+      - comdnet
+  
+  customer:
+    image: comd/customers:latest     
+    ports:
+      - "9090:9090"
+    environment:           
+      - SAP_RFC_DESTINATION=AS_ABAP
+      - JCO_ASHOST=10.0.64.13
+      - JCO_SYSNR=01
+      - JCO_CLIENT=220
+      - JCO_USER=amusa
+      - JCO_PASSWD=jfoxuser
+      - JCO_LANG=en
+      - JCO_POOL_CAPACITY=3
+      - JCO_PEAK_LIMIT=10 
+    networks:
+      - comdnet
+  
+  web:
+    image: comd/creditnote-web:latest     
+    ports:
+      - "8180:8180"
+    links:
+      - delivery
+      - customer
+      - creditnote
+    depends_on:
+      - delivery
+      - customer
+      - creditnote
+    environment:           
+      - DELIVERY_SERVICE_URL=http://delivery:8090/comd-delivery-api/v1
+      - CUSTOMER_SERVICE_URL=http://customer:9090/comd-customer-api/v1
+      - CREDITNOTE_SERVICE_URL=http://creditnote:8085/comd-creditnote-api/v1
+    networks:
+      - comdnet
+     
+      
+networks:
+    comdnet:
+      
+       
+
+    
+

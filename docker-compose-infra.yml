@@ -1,0 +1,79 @@
+version: '3'
+
+
+volumes:  
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+  postgres_data:
+      driver: local
+    
+services:
+    
+  #mongo_db:
+  #  image: mongo:latest 
+  #  container_name: mongo_db    
+  #  volumes:
+  #    - mongodb_data:/data/db
+  #    - mongodb_config:/data/configdb
+  #  environment:           
+  #    - DELIVERY_SERVICE_URL=http://delivery:8090/comd-delivery-api/v1
+  #    - CUSTOMER_SERVICE_URL=http://customer:9090/comd-customer-api/v1
+  #    - CREDITNOTE_SERVICE_URL=http://creditnote:8085/comd-creditnote-api/v1
+  #  networks:
+  #    - comdnet
+ mongo_db:
+    image: mongo:latest 
+    container_name: mongo_db 
+    ports:
+      - "27017:27017"    
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb    
+    networks:
+      - paynet
+    
+  postgres:
+      image: postgres
+      container_name: postgres
+      volumes:
+        - postgres_data:/var/lib/postgresql/data
+      environment:
+        POSTGRES_DB: keycloak
+        POSTGRES_USER: keycloak
+        POSTGRES_PASSWORD: password
+      networks:
+        - comdnet
+    
+  keycloak:
+    image: jboss/keycloak
+    container_name: keycloak
+    environment:      
+      POSTGRES_DB: keycloak      
+      DB_USER: keycloak      
+      DB_PASSWORD: password
+      KEYCLOAK_USER: admin
+      KEYCLOAK_PASSWORD: Pa55w0rd
+      #KEYCLOAK_LOGLEVEL: ALL
+      #ROOT_LOGLEVEL: ALL
+      # Uncomment the line below if you want to specify JDBC parameters. The parameter below is just an example, and it shouldn't be used in production without knowledge. It is highly recommended that you read the MySQL JDBC driver documentation in order to use it.
+        #JDBC_PARAMS: "connectTimeout=30000"
+    ports:
+      - 8080:8080
+    links:
+      - postgres
+    depends_on:
+      - postgres
+    networks:
+    - comdnet
+              
+      
+networks:
+    comdnet:
+      
+#docker run -d --name postgres --net keycloak-network -e POSTGRES_DB=keycloak -e POSTGRES_USER=keycloak -e POSTGRES_PASSWORD=password postgres
+#docker run --name keycloak --net keycloak-network jboss/keycloak
+
+    
+
